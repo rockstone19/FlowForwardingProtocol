@@ -1,0 +1,195 @@
+#Author: Peter Gutstein
+version: "2"
+
+services:
+#ENDPOINTS/SERVERS
+  server:
+    build:
+      dockerfile:
+        server/Dockerfile
+    command: ["222001", "170.30.0.10", "170.30.0.4"]
+    networks:
+      cloud:
+        ipv4_address: 170.30.0.4
+    depends_on:
+      - controller
+#USERS
+  user1:
+    build:
+      dockerfile:
+        user/Dockerfile
+    command: ["000001", "222001", "192.168.17.11", "192.168.17.10", "192.168.17.2"]
+    networks:
+      home1:
+        ipv4_address: 192.168.17.2
+    depends_on:
+      - server
+      - forwarder1
+      - forwarder2
+      - forwarder3
+      - forwarder4
+      - forwarder5
+  user2:
+    build:
+      dockerfile:
+        user/Dockerfile
+    command: ["000002", "000001", "182.158.17.11", "182.158.17.10", "182.158.17.2"]
+    networks:
+      home2:
+        ipv4_address: 182.158.17.2
+    depends_on:
+      - server
+      - forwarder1
+      - forwarder2
+      - forwarder3
+      - forwarder4
+      - forwarder5
+  user3:
+    build:
+      dockerfile:
+        user/Dockerfile
+    command: ["000003", "222001", "172.148.17.11", "172.148.17.10", "172.148.17.2"]
+    networks:
+      home3:
+        ipv4_address: 172.148.17.2
+    depends_on:
+      - server
+      - forwarder1
+      - forwarder2
+      - forwarder3
+      - forwarder4
+      - forwarder5
+#FORWARDERS
+  forwarder1:
+    build:
+      dockerfile:
+        forwarder/Dockerfile
+    command: ["111001", "192.168.17.10", "193.50.0.10", "192.168.17.11", "193.50.0.11"]
+    networks:
+      home1:
+        ipv4_address: 192.168.17.11
+      isp:
+        ipv4_address: 193.50.0.11
+    depends_on:
+      - server
+      - controller
+  forwarder2:
+    build:
+      dockerfile:
+        forwarder/Dockerfile
+    command: ["111002", "182.158.17.10", "193.50.0.10", "182.158.17.11", "193.50.0.12"]
+    networks:
+      home2:
+        ipv4_address: 182.158.17.11
+      isp:
+        ipv4_address: 193.50.0.12
+    depends_on:
+      - server
+      - controller
+  forwarder3:
+    build:
+      dockerfile:
+        forwarder/Dockerfile
+    command: ["111003", "193.50.0.10", "184.40.0.10", "193.50.0.13", "184.40.0.11"]
+    networks:
+      isp:
+        ipv4_address: 193.50.0.13
+      internet:
+        ipv4_address: 184.40.0.11
+    depends_on:
+      - server
+      - controller
+  forwarder4:
+    build:
+      dockerfile:
+        forwarder/Dockerfile
+    command: ["111004", "172.148.17.10", "184.40.0.10", "172.148.17.11", "184.40.0.12"]
+    networks:
+      home3:
+        ipv4_address: 172.148.17.11
+      internet:
+        ipv4_address: 184.40.0.12
+    depends_on:
+      - server
+      - controller
+  forwarder5:
+    build:
+      dockerfile:
+        forwarder/Dockerfile
+    command: ["111005", "184.40.0.10", "170.30.0.10", "184.40.0.13", "170.30.0.11"]
+    networks:
+      internet:
+        ipv4_address: 184.40.0.13
+      cloud:
+        ipv4_address: 170.30.0.11
+    depends_on:
+      - server
+      - controller
+
+#CONTROLLER
+  controller:
+    build:
+      dockerfile:
+        controller/Dockerfile
+    command: ["192.168.17.10", "182.158.17.10", "172.148.17.10", "193.50.0.10", "184.40.0.10", "170.30.0.10"]
+    networks:
+      home1:
+        ipv4_address: 192.168.17.10
+      home2:
+        ipv4_address: 182.158.17.10
+      home3:
+        ipv4_address: 172.148.17.10
+      isp:
+        ipv4_address: 193.50.0.10
+      internet:
+        ipv4_address: 184.40.0.10
+      cloud:
+        ipv4_address: 170.30.0.10
+
+#TCPDUMP
+  tcpdump:
+    image: kaazing/tcpdump
+    network_mode: "host"
+    volumes:
+      - ./tcpdump:/tcpdump
+    command: ["-i", "any", "udp", "-w", "tcpdump/tcpdump.pcap"]
+
+
+#NETWORKS
+networks:
+  home1:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.17.0/24
+  home2:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 182.158.17.0/24
+  home3:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.148.17.0/24
+  isp:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 193.50.0.0/16
+  internet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 184.40.0.0/16
+  cloud:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 170.30.0.0/16
